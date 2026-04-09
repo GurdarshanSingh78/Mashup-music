@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MashWave — YouTube Audio Mashup Generator</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #06060e;
+            --surface: rgba(255,255,255,0.04);
+            --border: rgba(255,255,255,0.08);
+            --neon: #00f5c4;
+            --neon-dim: rgba(0,245,196,0.15);
+            --pink: #ff2d78;
+            --pink-dim: rgba(255,45,120,0.12);
+            --text: #e8e8f0;
+            --muted: rgba(232,232,240,0.45);
+            --radius: 16px;
+        }
+
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: var(--bg);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            color: var(--text);
+        }
+
+
+        canvas {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+
+        .blobs {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            pointer-events: none;
+            overflow: hidden;
+        }
+        .blob {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.18;
+            animation: drift 12s ease-in-out infinite alternate;
+        }
+        .blob-1 { width: 520px; height: 520px; background: #00f5c4; top: -120px; left: -80px; animation-duration: 14s; }
+        .blob-2 { width: 400px; height: 400px; background: #ff2d78; bottom: -100px; right: -60px; animation-duration: 10s; animation-delay: -4s; }
+        .blob-3 { width: 300px; height: 300px; background: #7b2fff; top: 40%; left: 55%; animation-duration: 17s; animation-delay: -8s; }
+
+        @keyframes drift {
+            0%   { transform: translate(0, 0) scale(1); }
+            100% { transform: translate(30px, 40px) scale(1.08); }
+        }
+
+
+        .card {
+            position: relative;
+            z-index: 10;
+            width: min(480px, calc(100vw - 32px));
+            background: rgba(12,12,22,0.75);
+            backdrop-filter: blur(28px);
+            -webkit-backdrop-filter: blur(28px);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            padding: 44px 40px 40px;
+            box-shadow: 0 0 0 1px rgba(0,245,196,0.05), 0 32px 64px rgba(0,0,0,0.6);
+            animation: cardIn 0.7s cubic-bezier(0.22,1,0.36,1) both;
+        }
+
+        @keyframes cardIn {
+            from { opacity: 0; transform: translateY(28px) scale(0.97); }
+            to   { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 30px;
+        }
+        .brand-icon {
+            width: 42px; height: 42px;
+            background: linear-gradient(135deg, var(--neon), #00b8ff);
+            border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 20px;
+            box-shadow: 0 0 20px rgba(0,245,196,0.35);
+            flex-shrink: 0;
+        }
+        .brand-text { line-height: 1; }
+        .brand-name {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 28px;
+            letter-spacing: 2px;
+            background: linear-gradient(90deg, #fff 0%, var(--neon) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .brand-sub {
+            font-size: 11px;
+            font-weight: 500;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            color: var(--muted);
+            margin-top: 2px;
+        }
+
+        .wave-divider {
+            display: flex;
+            align-items: center;
+            gap: 3px;
+            margin-bottom: 28px;
+            height: 24px;
+        }
+        .wave-bar {
+            width: 3px;
+            background: var(--neon);
+            border-radius: 2px;
+            opacity: 0.7;
+            animation: waveBeat 1.2s ease-in-out infinite;
+        }
+        @keyframes waveBeat {
+            0%, 100% { transform: scaleY(0.3); opacity: 0.4; }
+            50%       { transform: scaleY(1);   opacity: 0.9; }
+        }
+
+        .alert {
+            padding: 12px 16px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 22px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            animation: slideDown 0.4s ease both;
+        }
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-8px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        .alert-success {
+            background: rgba(0,245,196,0.1);
+            border: 1px solid rgba(0,245,196,0.3);
+            color: var(--neon);
+        }
+        .alert-error {
+            background: rgba(255,45,120,0.1);
+            border: 1px solid rgba(255,45,120,0.35);
+            color: var(--pink);
+        }
+
+        .field { position: relative; margin-bottom: 18px; }
+
+        .field-label {
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 1.2px;
+            text-transform: uppercase;
+            color: var(--muted);
+            display: block;
+            margin-bottom: 7px;
+            transition: color 0.2s;
+        }
+
+        .field:focus-within .field-label { color: var(--neon); }
+
+        .input-wrap {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .field-icon {
+            position: absolute;
+            left: 14px;
+            font-size: 15px;
+            opacity: 0.5;
+            pointer-events: none;
+            transition: opacity 0.2s;
+            z-index: 1;
+        }
+        .field:focus-within .field-icon { opacity: 1; }
+
+        input {
+            width: 100%;
+            padding: 13px 14px 13px 40px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            color: var(--text);
+            font-family: 'Outfit', sans-serif;
+            font-size: 15px;
+            font-weight: 400;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+            -webkit-appearance: none;
+        }
+        input::placeholder { color: rgba(232,232,240,0.28); }
+        input:focus {
+            border-color: var(--neon);
+            background: rgba(0,245,196,0.04);
+            box-shadow: 0 0 0 3px rgba(0,245,196,0.1);
+        }
+        input[type="number"]::-webkit-inner-spin-button { opacity: 0.4; }
+
+        .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+        .hint {
+            font-size: 11px;
+            color: var(--muted);
+            margin-top: 5px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .hint::before { content: '›'; color: var(--neon); font-size: 14px; line-height: 1; }
+
+        .btn {
+            margin-top: 8px;
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, var(--neon) 0%, #00b8ff 100%);
+            color: #06060e;
+            border: none;
+            border-radius: 12px;
+            font-family: 'Outfit', sans-serif;
+            font-size: 15px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.15s, box-shadow 0.2s;
+            box-shadow: 0 4px 24px rgba(0,245,196,0.3);
+        }
+        .btn::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(255,255,255,0.2), transparent);
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(0,245,196,0.45); }
+        .btn:hover::before { opacity: 1; }
+        .btn:active { transform: translateY(0); }
+
+        .btn-inner { display: flex; align-items: center; justify-content: center; gap: 8px; }
+
+        .btn-pulse {
+            position: absolute;
+            inset: 0;
+            border-radius: 12px;
+            box-shadow: 0 0 0 0 rgba(0,245,196,0.5);
+            animation: pulse 2.5s ease-out infinite;
+        }
+        @keyframes pulse {
+            0%   { box-shadow: 0 0 0 0 rgba(0,245,196,0.45); }
+            70%  { box-shadow: 0 0 0 14px rgba(0,245,196,0); }
+            100% { box-shadow: 0 0 0 0 rgba(0,245,196,0); }
+        }
+
+        .footer {
+            margin-top: 20px;
+            text-align: center;
+            font-size: 12px;
+            color: var(--muted);
+            letter-spacing: 0.3px;
+        }
+        .footer span { color: var(--neon); }
+    </style>
+</head>
+<body>
+
+<div class="blobs">
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+    <div class="blob blob-3"></div>
+</div>
+
+<canvas id="bg"></canvas>
+
+<div class="card">
+
+    <div class="brand">
+        <div class="brand-icon">🎛️</div>
+        <div class="brand-text">
+            <div class="brand-name">MashWave</div>
+            <div class="brand-sub">YouTube Audio Mashup Engine</div>
+        </div>
+    </div>
+
+    <div class="wave-divider" id="waveDivider"></div>
+
+    {% if message %}
+    <div class="alert alert-{{ msg_type }}">
+        {% if msg_type == 'success' %}✅{% else %}⚠️{% endif %}
+        {{ message }}
+    </div>
+    {% endif %}
+
+    <form action="/" method="POST" autocomplete="off">
+
+        <div class="field">
+            <label class="field-label" for="singer">Artist / Singer</label>
+            <div class="input-wrap">
+                <span class="field-icon">🎤</span>
+                <input type="text" id="singer" name="singer" placeholder="e.g. Sharry Mann, Arijit Singh…" required>
+            </div>
+        </div>
+
+        <div class="field-row">
+            <div class="field">
+                <label class="field-label" for="videos">Video Count</label>
+                <div class="input-wrap">
+                    <span class="field-icon">📹</span>
+                    <input type="number" id="videos" name="videos" min="11" value="15" required>
+                </div>
+                <div class="hint">More than 10</div>
+            </div>
+
+            <div class="field">
+                <label class="field-label" for="duration">Duration (sec)</label>
+                <div class="input-wrap">
+                    <span class="field-icon">⏱️</span>
+                    <input type="number" id="duration" name="duration" min="21" value="30" required>
+                </div>
+                <div class="hint">More than 20 s</div>
+            </div>
+        </div>
+
+        <div class="field">
+            <label class="field-label" for="email">Delivery Email</label>
+            <div class="input-wrap">
+                <span class="field-icon">📧</span>
+                <input type="email" id="email" name="email" placeholder="your.email@example.com" required>
+            </div>
+        </div>
+
+        <button class="btn" type="submit">
+            <div class="btn-pulse"></div>
+            <div class="btn-inner">
+                <span>⚡</span>
+                <span>Generate &amp; Send Mashup</span>
+            </div>
+        </button>
+
+    </form>
+
+    <div class="footer">Powered by <span>MashWave</span> · clips fetched live from YouTube</div>
+</div>
+
+<script>
+    const waveDivider = document.getElementById('waveDivider');
+    const BARS = 32;
+    const heights = [4,8,14,20,28,22,16,10,18,26,30,24,18,12,8,14,20,28,22,16,10,18,26,30,24,18,12,8,6,10,16,20];
+    for (let i = 0; i < BARS; i++) {
+        const b = document.createElement('div');
+        b.className = 'wave-bar';
+        b.style.height = heights[i % heights.length] + 'px';
+        b.style.animationDelay = (i * 0.045) + 's';
+        b.style.animationDuration = (0.9 + Math.random() * 0.6) + 's';
+        waveDivider.appendChild(b);
+    }
+
+    const canvas = document.getElementById('bg');
+    const ctx = canvas.getContext('2d');
+    let W, H, particles = [];
+
+    function resize() {
+        W = canvas.width  = window.innerWidth;
+        H = canvas.height = window.innerHeight;
+    }
+    resize();
+    window.addEventListener('resize', () => { resize(); init(); });
+
+    class Particle {
+        constructor() { this.reset(true); }
+        reset(init) {
+            this.x  = Math.random() * W;
+            this.y  = init ? Math.random() * H : H + 10;
+            this.r  = 0.8 + Math.random() * 1.6;
+            this.vy = -(0.2 + Math.random() * 0.5);
+            this.vx = (Math.random() - 0.5) * 0.3;
+            this.life = 0;
+            this.maxLife = 180 + Math.random() * 120;
+            this.hue = Math.random() < 0.6 ? 165 : 335;
+        }
+        update() {
+            this.x += this.vx;
+            this.y += this.vy;
+            this.life++;
+            if (this.y < -10 || this.life > this.maxLife) this.reset(false);
+        }
+        draw() {
+            const alpha = Math.sin((this.life / this.maxLife) * Math.PI) * 0.55;
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
+            ctx.fillStyle = `hsla(${this.hue},100%,65%,${alpha})`;
+            ctx.fill();
+        }
+    }
+
+    function init() {
+        particles = Array.from({ length: 80 }, () => new Particle());
+    }
+    init();
+
+    function loop() {
+        ctx.clearRect(0, 0, W, H);
+        particles.forEach(p => { p.update(); p.draw(); });
+        requestAnimationFrame(loop);
+    }
+    loop();
+
+    document.querySelector('.btn').addEventListener('click', function(e) {
+        const r = document.createElement('span');
+        r.style.cssText = `position:absolute;border-radius:50%;transform:scale(0);animation:ripple 0.55s linear;background:rgba(255,255,255,0.25);width:200px;height:200px;left:${e.offsetX-100}px;top:${e.offsetY-100}px;pointer-events:none`;
+        this.appendChild(r);
+        setTimeout(() => r.remove(), 600);
+    });
+
+    const style = document.createElement('style');
+    style.textContent = `@keyframes ripple{to{transform:scale(2.5);opacity:0}}`;
+    document.head.appendChild(style);
+</script>
+</body>
+</html>

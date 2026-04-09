@@ -1,0 +1,16 @@
+# Virtual Environment
+venv/
+
+# Python Cache
+__pycache__/
+*.pyc
+
+# Downloaded/Generated Audio Files
+downloads/
+*.mp3
+*.webm
+dist/
+Mashup_Gurdarshan_102303217.egg-info/
+
+# Mac OS files
+.DS_Store
